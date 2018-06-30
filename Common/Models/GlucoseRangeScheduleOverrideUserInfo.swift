@@ -15,7 +15,7 @@ struct GlucoseRangeScheduleOverrideUserInfo {
         case preMeal
 
         static var allContexts: [Context] {
-            return [.workout, .preMeal]
+            return [.workout, .preMeal, .remoteTempTarget]
         }
     }
 
