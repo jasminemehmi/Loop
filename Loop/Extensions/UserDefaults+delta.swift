@@ -40,8 +40,6 @@ extension UserDefaults {
             return
         }
         var settings = loopSettings?.rawValue ?? [:]
-        settings["pumpId"] = pumpSettings?.pumpID
-        settings["pumpRegion"] = pumpSettings?.pumpRegion.description
         settings["cgmSource"] = cgm?.rawValue
         var targets : [String:String] = [:]
         for range in loopSettings?.glucoseTargetRangeSchedule?.overrideRanges ?? [:] {

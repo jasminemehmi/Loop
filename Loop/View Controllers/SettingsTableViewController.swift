@@ -42,7 +42,7 @@ final class SettingsTableViewController: UITableViewController {
             dataManager.loopManager.glucoseStore.authorize { (result) -> Void in
                 // Do nothing for now
         
-        if let uploader = dataManager.remoteDataManager.nightscoutService.uploader {
+                if let uploader = self.dataManager.remoteDataManager.nightscoutService.uploader {
                     UserDefaults.appGroup.uploadProfile(uploader: uploader)
                 }
             }
