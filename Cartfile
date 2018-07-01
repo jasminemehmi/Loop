@@ -1,7 +1,7 @@
-github "kdisimone/Loopkit" "gamma"
+github "kdisimone/Loopkit" "WIP-pm"
 github "LoopKit/CGMBLEKit" "dev"
 github "i-schuetz/SwiftCharts" == 0.6.1
 github "mddub/dexcom-share-client-swift" == 0.4.1
 github "mddub/G4ShareSpy" == 0.3.3
-github "kdisimone/rileylink_ios" "pump-manager"
+github "kdisimone/rileylink_ios" "WIP-pm"
 github "LoopKit/Amplitude-iOS" "decreepify"
