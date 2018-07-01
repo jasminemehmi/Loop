@@ -25,7 +25,7 @@ final class AnalyticsManager: IdentifiableClass {
             amplitudeService = AmplitudeService(APIKey: nil)
         }
 
-        logger = DiagnosticLogger.shared?.forCategory(type(of: self).className)
+        logger = DiagnosticLogger.shared.forCategory(type(of: self).className)
     }
 
     static let shared = AnalyticsManager()
@@ -61,11 +61,7 @@ final class AnalyticsManager: IdentifiableClass {
 
     // MARK: - Config Events
 
-    func didChangeRileyLinkConnectionState() {
-        logEvent("RileyLink Connection", outOfSession: true)
-    }
-
-    func transmitterTimeDidDrift(_ drift: TimeInterval) {
+       func transmitterTimeDidDrift(_ drift: TimeInterval) {
         logEvent("Transmitter time change", withProperties: ["value" : drift], outOfSession: true)
     }
 

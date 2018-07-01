@@ -5,77 +5,75 @@
 //  Created by Bharat Mediratta on 11/25/16.
 //  Copyright © 2016 Nathan Racklyeft. All rights reserved.
 //
-
 import HealthKit
 import UIKit
 import LoopKit
-import LoopUI
 
 
 final class StatusExtensionDataManager {
-    unowned let dataManager: DeviceDataManager
-
+    unowned let deviceManager: DeviceDataManager
+    
     init(deviceDataManager: DeviceDataManager) {
-        self.dataManager = deviceDataManager
-
+        self.deviceManager = deviceDataManager
+        
         NotificationCenter.default.addObserver(self, selector: #selector(update(_:)), name: .LoopDataUpdated, object: deviceDataManager.loopManager)
     }
-
+    
     fileprivate var defaults: UserDefaults? {
         return UserDefaults.appGroup
     }
-
+    
     var context: StatusExtensionContext? {
         return defaults?.statusExtensionContext
     }
-
+    
     @objc private func update(_ notification: Notification) {
-        guard let unit = (dataManager.loopManager.glucoseStore.preferredUnit ?? context?.predictedGlucose?.unit) else {
+        guard let unit = (deviceManager.loopManager.glucoseStore.preferredUnit ?? context?.predictedGlucose?.unit) else {
             return
         }
-
+        
         createContext(glucoseUnit: unit) { (context) in
             if let context = context {
                 self.defaults?.statusExtensionContext = context
             }
         }
     }
-
+    
     private func createContext(glucoseUnit: HKUnit, _ completionHandler: @escaping (_ context: StatusExtensionContext?) -> Void) {
-        dataManager.loopManager.getLoopState { (manager, state) in
-            let dataManager = self.dataManager
+        deviceManager.loopManager.getLoopState { (manager, state) in
+            let dataManager = self.deviceManager
             var context = StatusExtensionContext()
-        
+            
             #if IOS_SIMULATOR
-                // If we're in the simulator, there's a higher likelihood that we don't have
-                // a fully configured app. Inject some baseline debug data to let us test the
-                // experience. This data will be overwritten by actual data below, if available.
-                context.batteryPercentage = 0.25
-                context.netBasal = NetBasalContext(
-                    rate: 2.1,
-                    percentage: 0.6,
-                    start:
-                    Date(timeIntervalSinceNow: -250),
-                    end: Date(timeIntervalSinceNow: .minutes(30))
-                )
-                context.predictedGlucose = PredictedGlucoseContext(
-                    values: (1...36).map { 89.123 + Double($0 * 5) }, // 3 hours of linear data
-                    unit: HKUnit.milligramsPerDeciliter,
-                    startDate: Date(),
-                    interval: TimeInterval(minutes: 5))
-
-                let lastLoopCompleted = Date(timeIntervalSinceNow: -TimeInterval(minutes: 0))
+            // If we're in the simulator, there's a higher likelihood that we don't have
+            // a fully configured app. Inject some baseline debug data to let us test the
+            // experience. This data will be overwritten by actual data below, if available.
+            context.batteryPercentage = 0.25
+            context.netBasal = NetBasalContext(
+                rate: 2.1,
+                percentage: 0.6,
+                start:
+                Date(timeIntervalSinceNow: -250),
+                end: Date(timeIntervalSinceNow: .minutes(30))
+            )
+            context.predictedGlucose = PredictedGlucoseContext(
+                values: (1...36).map { 89.123 + Double($0 * 5) }, // 3 hours of linear data
+                unit: HKUnit.milligramsPerDeciliter,
+                startDate: Date(),
+                interval: TimeInterval(minutes: 5))
+            
+            let lastLoopCompleted = Date(timeIntervalSinceNow: -TimeInterval(minutes: 0))
             #else
-                guard state.error == nil else {
-                    // TODO: unclear how to handle the error here properly.
-                    completionHandler(nil)
-                    return
-                }
-                let lastLoopCompleted = manager.lastLoopCompleted
+            guard state.error == nil else {
+                // TODO: unclear how to handle the error here properly.
+                completionHandler(nil)
+                return
+            }
+            let lastLoopCompleted = manager.lastLoopCompleted
             #endif
-
+            
             context.lastLoopCompleted = lastLoopCompleted
-
+            
             // Drop the first element in predictedGlucose because it is the currentGlucose
             // and will have a different interval to the next element
             if let predictedGlucose = state.predictedGlucose?.dropFirst(),
@@ -88,7 +86,7 @@ final class StatusExtensionDataManager {
                     startDate: first.startDate,
                     interval: second.startDate.timeIntervalSince(first.startDate))
             }
-
+            
             let date = state.lastTempBasal?.startDate ?? Date()
             if let scheduledBasal = manager.basalRateSchedule?.between(start: date, end: date).first {
                 let netBasal = NetBasal(
@@ -96,14 +94,13 @@ final class StatusExtensionDataManager {
                     maxBasal: manager.settings.maximumBasalRatePerHour,
                     scheduledBasal: scheduledBasal
                 )
-
+                
                 context.netBasal = NetBasalContext(rate: netBasal.rate, percentage: netBasal.percent, start: netBasal.start, end: netBasal.end)
             }
-
-            if let batteryPercentage = dataManager.pumpBatteryChargeRemaining {
-                context.batteryPercentage = batteryPercentage
-            }
-
+            
+            context.batteryPercentage = dataManager.pumpManager?.pumpBatteryChargeRemaining
+            context.reservoirCapacity = dataManager.pumpManager?.pumpReservoirCapacity
+            
             if let sensorInfo = dataManager.sensorInfo {
                 context.sensor = SensorDisplayableContext(
                     isStateValid: sensorInfo.isStateValid,
@@ -112,7 +109,7 @@ final class StatusExtensionDataManager {
                     isLocal: sensorInfo.isLocal
                 )
             }
-
+            
             completionHandler(context)
         }
     }
@@ -126,6 +123,6 @@ extension StatusExtensionDataManager: CustomDebugStringConvertible {
             "appGroupName: \(Bundle.main.appGroupSuiteName)",
             "statusExtensionContext: \(String(reflecting: defaults?.statusExtensionContext))",
             ""
-        ].joined(separator: "\n")
+            ].joined(separator: "\n")
     }
 }

@@ -57,7 +57,7 @@ final class LoopDataManager {
         insulinSensitivitySchedule: InsulinSensitivitySchedule? = UserDefaults.appGroup.insulinSensitivitySchedule,
         settings: LoopSettings = UserDefaults.appGroup.loopSettings ?? LoopSettings()
     ) {
-        self.logger = DiagnosticLogger.shared!.forCategory("LoopDataManager")
+        self.logger = DiagnosticLogger.shared.forCategory("LoopDataManager")
         self.lockedLastLoopCompleted = Locked(lastLoopCompleted)
         self.lastTempBasal = lastTempBasal
         self.settings = settings
@@ -262,6 +262,10 @@ extension LoopDataManager {
             doseStore.basalProfile = newValue
             UserDefaults.appGroup.basalRateSchedule = newValue
             notify(forChange: .preferences)
+            
+            if let newValue = newValue, let oldValue = doseStore.basalProfile, newValue.items != oldValue.items {
+                AnalyticsManager.shared.didChangeBasalRateSchedule()
+            }
         }
     }
 
